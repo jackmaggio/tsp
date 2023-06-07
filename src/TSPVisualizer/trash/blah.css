@@ -1,0 +1,36 @@
+html,
+body {
+  height: 100%;
+}
+
+.tsp {
+  height: 100vh;
+  width: 100%;
+  z-index: -99;
+}
+
+.side-pane {
+  height: 100%;
+  width: 10%;
+  flex: 0.1;
+  display: inline-block;
+  border-color: darkblue;
+  border-width: 1em;
+}
+
+.back {
+  background: lightgray;
+  width: 90%;
+  height: 100%;
+  z-index: -1;
+  display: block;
+  flex: 0.9;
+}
+
+.edge {
+  z-index: 9999;
+}
+
+.node svg {
+  color: yellow;
+}
