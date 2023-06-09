@@ -12,8 +12,33 @@ export default class TSPVisualizer extends Component {
     };
     this.nodes = {};
     this.edges = {};
+    this.routes = {};
+    this.ids = [];
   }
 
+  generateRoutes(nums) {
+    alert();
+    var result = [];
+    if (nums.length === 1) {
+      return [[nums[0]]];
+    }
+    var size = nums.length;
+    for (let i = 0; i < size; i++) {
+      var removed = nums.splice(0, 1);
+
+      var perms = this.generateRoutes(nums);
+
+      for (let j = 0; j < perms.length; j++) {
+        perms[j].push(removed[0]);
+        result.push(perms[j]);
+      }
+
+      nums.push(removed[0]);
+    }
+    return result;
+  }
+
+  traverseRoute() {}
   //Allows user to drag nodes onto the background
   dragNewNode = (ev) => {
     ev.preventDefault();
@@ -22,8 +47,6 @@ export default class TSPVisualizer extends Component {
   //Allows user to drop nodes onto the background
   //Adds new node to list of nodes and all edges
   dropNewNode = (ev) => {
-    console.log(ev.clientX);
-
     var currentId = "A";
     var s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 
@@ -37,7 +60,6 @@ export default class TSPVisualizer extends Component {
       // x/y coordinates of existing node
       pt.x = this.nodes[currentId][0];
       pt.y = this.nodes[currentId][1];
-      console.log(s.getScreenCTM());
       //Transform coordinates to SVG coordinates
       svgGlobal = pt.matrixTransform(s.getScreenCTM().inverse());
       var x1 = svgGlobal.x;
@@ -51,19 +73,19 @@ export default class TSPVisualizer extends Component {
       var x2 = svgGlobal.x;
       var y2 = svgGlobal.y;
 
+      //generate random weight
+      var weight = Math.floor(Math.random() * 100 + 1);
       //Store edge coordinates in edges map
-      this.edges[id] = [x1, y1, x2, y2];
+      this.edges[id] = [x1, y1, x2, y2, weight];
       currentId = String.fromCharCode(currentId.charCodeAt(0) + 1);
     }
-    console.log(this.edges);
     //add new node to the map of nodes: key= id, value= [x coordinate, y coordinate, fill color]
     this.nodes[this.state.nextId] = [ev.clientX - 150, ev.clientY, "gold"];
-    console.log(String.fromCharCode(this.state.nextId.charCodeAt(0) + 1));
+    this.ids.push(this.state.nextId);
     //update the id of the nextnode
     this.setState({
       nextId: String.fromCharCode(this.state.nextId.charCodeAt(0) + 1),
     });
-    console.log(this.nodes);
   };
 
   render() {
@@ -71,6 +93,7 @@ export default class TSPVisualizer extends Component {
       <div className="tsp" droppable="true">
         <div className="side-pane">
           <Node></Node>
+          <button onClick={(e) => this.generateRoutes(this.ids)}>Start</button>
         </div>
         <svg
           id="back"
@@ -90,6 +113,16 @@ export default class TSPVisualizer extends Component {
                 strokeWidth="2"
                 position="absolute"
               />
+              <text
+                x={(this.edges[key][0] + this.edges[key][2]) / 2}
+                y={(this.edges[key][1] + this.edges[key][3]) / 2}
+                dominantBaseline="auto"
+                fontFamily="Arial"
+                font-size="20"
+                fill="black"
+              >
+                {this.edges[key][4]}
+              </text>
             </svg>
           ))}
           {Object.keys(this.nodes).map((key) => (
