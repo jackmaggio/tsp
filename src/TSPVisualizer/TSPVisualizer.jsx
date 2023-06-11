@@ -9,36 +9,82 @@ export default class TSPVisualizer extends Component {
     super(props);
     this.state = {
       nextId: "A",
+      currentId: "",
+      nodes: {},
     };
-    this.nodes = {};
+    //this.state.nodes = {};
     this.edges = {};
     this.routes = {};
     this.ids = [];
+    this.totalNodes = 0;
   }
 
-  generateRoutes(nums) {
-    alert();
+  generateRoutes(nodes) {
     var result = [];
-    if (nums.length === 1) {
-      return [[nums[0]]];
+    if (nodes.length === 1) {
+      return [[nodes[0]]];
     }
-    var size = nums.length;
+    var size = nodes.length;
     for (let i = 0; i < size; i++) {
-      var removed = nums.splice(0, 1);
+      var removed = nodes.splice(0, 1);
 
-      var perms = this.generateRoutes(nums);
+      var perms = this.generateRoutes(nodes);
 
       for (let j = 0; j < perms.length; j++) {
         perms[j].push(removed[0]);
         result.push(perms[j]);
+        if (perms[j].length === this.totalNodes) {
+          this.traverseRoute(perms[j]);
+        }
       }
 
-      nums.push(removed[0]);
+      nodes.push(removed[0]);
     }
     return result;
   }
 
-  traverseRoute() {}
+  traverseRoute(route) {
+    var usedEdges = [];
+    route.push(route[0]);
+    for (let i = 0; i < route.length - 1; i++) {
+      var source = route[i];
+      var dest = route[i + 1];
+
+      var edgeId = "";
+      if (source < dest) {
+        edgeId = source + dest;
+      } else {
+        edgeId = dest + source;
+      }
+      usedEdges.push(edgeId);
+
+      // this.changeNodeColor(source, "green");
+
+      // let temp = this.state.nodes;
+      // console.log(temp, this.state.nodes);
+      // temp[source][2] = "green";
+      // this.setState({ nodes: temp });
+      console.log(
+        document.getElementById("nodeA").getElementsByTagName("circle")[0]
+      );
+      document
+        .getElementById("nodeA")
+        .getElementsByTagName("circle")[0]
+        .setAttribute("fill", "green");
+
+      //this.state.nodes[source][2] = "green";
+      //console.log(document.getElementById("nodeA"));
+      this.edges[edgeId][5] = "green";
+
+      //await this.sleep(5);
+
+      //this.changeNodeColor(dest, "green");
+      //await this.sleep(5);
+    }
+    // for (let i = 0; i < route.length; i++) {
+    //   this.state.nodes[route[i]][2] = "gold";
+    // }
+  }
   //Allows user to drag nodes onto the background
   dragNewNode = (ev) => {
     ev.preventDefault();
@@ -58,8 +104,8 @@ export default class TSPVisualizer extends Component {
       var id = currentId + this.state.nextId;
 
       // x/y coordinates of existing node
-      pt.x = this.nodes[currentId][0];
-      pt.y = this.nodes[currentId][1];
+      pt.x = this.state.nodes[currentId][0];
+      pt.y = this.state.nodes[currentId][1];
       //Transform coordinates to SVG coordinates
       svgGlobal = pt.matrixTransform(s.getScreenCTM().inverse());
       var x1 = svgGlobal.x;
@@ -76,19 +122,32 @@ export default class TSPVisualizer extends Component {
       //generate random weight
       var weight = Math.floor(Math.random() * 100 + 1);
       //Store edge coordinates in edges map
-      this.edges[id] = [x1, y1, x2, y2, weight];
+      this.edges[id] = [x1, y1, x2, y2, weight, "red"];
       currentId = String.fromCharCode(currentId.charCodeAt(0) + 1);
     }
     //add new node to the map of nodes: key= id, value= [x coordinate, y coordinate, fill color]
-    this.nodes[this.state.nextId] = [ev.clientX - 150, ev.clientY, "gold"];
+    var divId = "node" + this.state.nextId;
+    let temp = this.state.nodes;
+    temp[this.state.nextId] = [ev.clientX - 150, ev.clientY, "gold", divId];
+    this.setState({ nodes: temp });
+
+    // this.state.nodes[this.state.nextId] = [
+    //   ev.clientX - 150,
+    //   ev.clientY,
+    //   "gold",
+    //   divId,
+    // ];
+
     this.ids.push(this.state.nextId);
     //update the id of the nextnode
     this.setState({
       nextId: String.fromCharCode(this.state.nextId.charCodeAt(0) + 1),
     });
+    this.totalNodes += 1;
   };
 
   render() {
+    const nodes = this.state.nodes;
     return (
       <div className="tsp" droppable="true">
         <div className="side-pane">
@@ -109,7 +168,7 @@ export default class TSPVisualizer extends Component {
                 y1={this.edges[key][1]}
                 x2={this.edges[key][2]}
                 y2={this.edges[key][3]}
-                stroke="red"
+                stroke={this.edges[key][5]}
                 strokeWidth="2"
                 position="absolute"
               />
@@ -118,31 +177,31 @@ export default class TSPVisualizer extends Component {
                 y={(this.edges[key][1] + this.edges[key][3]) / 2}
                 dominantBaseline="auto"
                 fontFamily="Arial"
-                font-size="20"
+                fontSize="20"
                 fill="black"
               >
                 {this.edges[key][4]}
               </text>
             </svg>
           ))}
-          {Object.keys(this.nodes).map((key) => (
-            <svg className="node" overflow="visible">
+          {Object.keys(nodes).map((key) => (
+            <svg id={nodes[key][3]} className="node" overflow="visible">
               <circle
                 id={key}
-                cx={this.nodes[key][0]}
-                cy={this.nodes[key][1]}
+                cx={nodes[key][0]}
+                cy={nodes[key][1]}
                 r="25"
-                fill={this.nodes[key][2]}
+                fill={nodes[key][2]}
                 stroke="black"
-                stroke-width="5"
+                strokeWidth="5"
               ></circle>
               <text
-                x={this.nodes[key][0]}
-                y={this.nodes[key][1]}
+                x={this.state.nodes[key][0]}
+                y={this.state.nodes[key][1]}
                 dominantBaseline="middle"
                 fontFamily="Arial"
                 textAnchor="middle"
-                font-size="25"
+                fontSize="25"
                 fill="black"
               >
                 {key}
