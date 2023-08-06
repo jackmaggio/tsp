@@ -9,14 +9,15 @@ export default class TSPVisualizer extends Component {
     super(props);
     this.state = {
       nextId: "A",
-      currentId: "",
       nodes: {},
+      edges: {},
     };
-    //this.state.nodes = {};
-    this.edges = {};
     this.routes = {};
     this.ids = [];
     this.totalNodes = 0;
+    this.delay = -4000;
+    this.delta = 4000;
+    this.usedEdges = [];
   }
 
   generateRoutes(nodes) {
@@ -29,7 +30,7 @@ export default class TSPVisualizer extends Component {
       var removed = nodes.splice(0, 1);
 
       var perms = this.generateRoutes(nodes);
-
+      console.log(perms);
       for (let j = 0; j < perms.length; j++) {
         perms[j].push(removed[0]);
         result.push(perms[j]);
@@ -43,47 +44,43 @@ export default class TSPVisualizer extends Component {
     return result;
   }
 
-  traverseRoute(route) {
-    var usedEdges = [];
-    route.push(route[0]);
-    for (let i = 0; i < route.length - 1; i++) {
-      var source = route[i];
-      var dest = route[i + 1];
+  traverseRoute(r) {
+    this.delay += this.delta;
+    console.log(this.delay);
+    setTimeout(
+      function (r) {
+        var route = r;
+        route.push(route[0]);
+        for (let i = 0; i < route.length - 1; i++) {
+          this.delay += this.delta;
+          var source = route[i];
+          var dest = route[i + 1];
 
-      var edgeId = "";
-      if (source < dest) {
-        edgeId = source + dest;
-      } else {
-        edgeId = dest + source;
-      }
-      usedEdges.push(edgeId);
+          var edgeId = "";
+          if (source < dest) {
+            edgeId = source + dest;
+          } else {
+            edgeId = dest + source;
+          }
 
-      // this.changeNodeColor(source, "green");
+          var currentNode = "node" + source;
+          var currentEdge = "edge" + edgeId;
+          document
+            .getElementById(currentNode)
+            .getElementsByTagName("circle")[0]
+            .getElementsByTagName("animate")[0]
+            .beginElement();
 
-      // let temp = this.state.nodes;
-      // console.log(temp, this.state.nodes);
-      // temp[source][2] = "green";
-      // this.setState({ nodes: temp });
-      console.log(
-        document.getElementById("nodeA").getElementsByTagName("circle")[0]
-      );
-      document
-        .getElementById("nodeA")
-        .getElementsByTagName("circle")[0]
-        .setAttribute("fill", "green");
-
-      //this.state.nodes[source][2] = "green";
-      //console.log(document.getElementById("nodeA"));
-      this.edges[edgeId][5] = "green";
-
-      //await this.sleep(5);
-
-      //this.changeNodeColor(dest, "green");
-      //await this.sleep(5);
-    }
-    // for (let i = 0; i < route.length; i++) {
-    //   this.state.nodes[route[i]][2] = "gold";
-    // }
+          document
+            .getElementById(currentEdge)
+            .getElementsByTagName("line")[0]
+            .getElementsByTagName("animate")[0]
+            .beginElement();
+        }
+      },
+      this.delay,
+      r
+    );
   }
   //Allows user to drag nodes onto the background
   dragNewNode = (ev) => {
@@ -121,22 +118,33 @@ export default class TSPVisualizer extends Component {
 
       //generate random weight
       var weight = Math.floor(Math.random() * 100 + 1);
+      var edgeId = "edge" + id;
+
       //Store edge coordinates in edges map
-      this.edges[id] = [x1, y1, x2, y2, weight, "red"];
+      let updatedEdges = this.state.edges;
+      updatedEdges[id] = {
+        x1: x1,
+        y1: y1,
+        x2: x2,
+        y2: y2,
+        weight: weight,
+        color: "red",
+        id: edgeId,
+      };
+      this.setState({ edges: updatedEdges });
+
       currentId = String.fromCharCode(currentId.charCodeAt(0) + 1);
     }
     //add new node to the map of nodes: key= id, value= [x coordinate, y coordinate, fill color]
     var divId = "node" + this.state.nextId;
-    let temp = this.state.nodes;
-    temp[this.state.nextId] = [ev.clientX - 150, ev.clientY, "gold", divId];
-    this.setState({ nodes: temp });
-
-    // this.state.nodes[this.state.nextId] = [
-    //   ev.clientX - 150,
-    //   ev.clientY,
-    //   "gold",
-    //   divId,
-    // ];
+    let updatedNodes = this.state.nodes;
+    updatedNodes[this.state.nextId] = [
+      ev.clientX - 150,
+      ev.clientY,
+      "gold",
+      divId,
+    ];
+    this.setState({ nodes: updatedNodes });
 
     this.ids.push(this.state.nextId);
     //update the id of the nextnode
@@ -147,12 +155,19 @@ export default class TSPVisualizer extends Component {
   };
 
   render() {
-    const nodes = this.state.nodes;
     return (
       <div className="tsp" droppable="true">
         <div className="side-pane">
-          <Node></Node>
-          <button onClick={(e) => this.generateRoutes(this.ids)}>Start</button>
+          <Node />
+          <div className="buttons">
+            <button
+              className="startButton"
+              onClick={(e) => this.generateRoutes(this.ids)}
+            >
+              Start
+            </button>
+            <button className="stopButton">Stop</button>
+          </div>
         </div>
         <svg
           id="back"
@@ -161,40 +176,70 @@ export default class TSPVisualizer extends Component {
           onDragOver={(e) => this.dragNewNode(e)}
           onDrop={(e) => this.dropNewNode(e)}
         >
-          {Object.keys(this.edges).map((key) => (
-            <svg className="edge" overflow="visible">
+          {Object.keys(this.state.edges).map((key) => (
+            <svg
+              id={this.state.edges[key]["id"]}
+              className="edge"
+              overflow="visible"
+            >
               <line
-                x1={this.edges[key][0]}
-                y1={this.edges[key][1]}
-                x2={this.edges[key][2]}
-                y2={this.edges[key][3]}
-                stroke={this.edges[key][5]}
+                x1={this.state.edges[key]["x1"]}
+                y1={this.state.edges[key]["y1"]}
+                x2={this.state.edges[key]["x2"]}
+                y2={this.state.edges[key]["y2"]}
+                stroke={this.state.edges[key]["color"]}
                 strokeWidth="2"
                 position="absolute"
-              />
+              >
+                <animate
+                  attributeName="stroke"
+                  values="green;"
+                  dur="3s"
+                  begin="indefinite"
+                />
+              </line>
               <text
-                x={(this.edges[key][0] + this.edges[key][2]) / 2}
-                y={(this.edges[key][1] + this.edges[key][3]) / 2}
+                x={
+                  (this.state.edges[key]["x1"] + this.state.edges[key]["x2"]) /
+                  2
+                }
+                y={
+                  (this.state.edges[key]["y1"] + this.state.edges[key]["y2"]) /
+                  2
+                }
                 dominantBaseline="auto"
                 fontFamily="Arial"
                 fontSize="20"
                 fill="black"
               >
-                {this.edges[key][4]}
+                {this.state.edges[key]["weight"]}
               </text>
             </svg>
           ))}
-          {Object.keys(nodes).map((key) => (
-            <svg id={nodes[key][3]} className="node" overflow="visible">
+          {Object.keys(this.state.nodes).map((key) => (
+            <svg
+              id={this.state.nodes[key][3]}
+              className="node"
+              overflow="visible"
+            >
               <circle
                 id={key}
-                cx={nodes[key][0]}
-                cy={nodes[key][1]}
+                className={key}
+                cx={this.state.nodes[key][0]}
+                cy={this.state.nodes[key][1]}
                 r="25"
-                fill={nodes[key][2]}
+                fill={this.state.nodes[key][2]}
                 stroke="black"
                 strokeWidth="5"
-              ></circle>
+              >
+                <animate
+                  attributeName="fill"
+                  values="green;"
+                  dur="3s"
+                  begin="indefinite"
+                />
+              </circle>
+
               <text
                 x={this.state.nodes[key][0]}
                 y={this.state.nodes[key][1]}
